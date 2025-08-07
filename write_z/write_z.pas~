@@ -35,14 +35,14 @@ end;
 procedure AskHeight(var height: integer);
 const
   question_text: string =
-    'Enter height of your Z letter(it has to be more then 5 and odd): ';
+    'Enter height of your SVO ZZZ(it has to be more then 5 and odd): ';
 begin
   AskValue(question_text, height, typeHeight);
 end;
 
 procedure AskAmount(var amount: integer);
 const
-  question_text: string = 'Enter amount of your Z letters: ';
+  question_text: string = 'Enter amount of your SVO ZZZ: ';
 begin
   AskValue(question_text, amount, typeAmount);
 end;
