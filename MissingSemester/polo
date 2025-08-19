@@ -1,0 +1,19 @@
+#!/bin/bash
+
+DIRNAME="`dirname $0`"
+if [ $DIRNAME = "" -o ! -d $DIRNAME ] ; then
+    echo Something went wrong, maybe bad dirname
+    exit 1
+fi
+cd $DIRNAME
+
+if [ ! -f position.txt ] ; then
+    echo position.txt does not exist
+    exit 2
+fi
+DIRNAME="`cat position.txt`"
+if [ $DIRNAME = "" -o ! -d $DIRNAME ] ; then
+    echo Вad dirname
+    exit 3
+fi
+cd $DIRNAME
