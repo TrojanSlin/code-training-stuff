@@ -7,7 +7,7 @@ const
   KEY_DOWN = -80;
   KEY_ENTER = 13;
 
-  { CONFIG }
+  { CONFIG ==========================================}
   { starting menu }
   MENU_OPT_AMOUNT = 4;      { amount of options (start, exit) etc }
   MENU_SHIFT_RIGHT = 4;     { shift of menu from right left corner }
@@ -15,6 +15,7 @@ const
   OPTIONS_PADDING = 2;      { distance between options }
   { animations }
   SELECTION_MOVE_DELAY = 200;   { delay of moving selected opt after key pressed }
+  SELECTION_TEXT_MV_DELAY = 100;{ delay of text moving to right if it was slcted }
   { selected menu option castomization }
   SELECTED_OPT_BGC = DarkGray;  { background color }
   SELECTED_OPT_SHIFT = 2;       { shift to right from cursor }
@@ -34,7 +35,7 @@ type
 
 var
   NamesOfOptions: MenuNames = ('Start', 'Extras', 'Settings', 'Exit');
-
+{ BASIC LOGIC ================================================================================ }
 { get which button was pressed rn as a number }
 function GetKey(): integer;
 var
@@ -71,71 +72,177 @@ begin
   PositionMenu(Menu);
 end;
 
-function FindSelected(Menu: MenuType; Param: OptionsParam):integer;
+{ find y param of current selected option }
+function FindSelectedY(Menu: MenuType):integer;
 var
   i: integer;
 begin
   for i := 1 to MENU_OPT_AMOUNT do
   begin
     if Menu[i].selected then
-      case Param of
-        y:      FindSelected := Menu[i].y;
-        number: FindSelected := i;
-      end;
+      FindSelectedY := Menu[i].y;
   end;
 end;
 
-procedure GotoSelected(Menu: MenuType);
-begin
-  GotoXY(MENU_SHIFT_RIGHT, FindSelected(Menu, y));
-end;
-
-procedure WriteMenu(Menu: MenuType);
+{ find number param of current selected option }
+function FindSelectedNum(Menu: MenuType):integer;
 var
   i: integer;
 begin
   for i := 1 to MENU_OPT_AMOUNT do
   begin
+    if Menu[i].selected then
+      FindSelectedNum := i;
+  end;
+end;
+
+{ VISUALIZATION LOGIC ============================================================================= }
+{ clear text of option }
+procedure ClearOpt(Menu: MenuType; OptionNum: integer);
+var
+  OptLength, StartPos, i: integer;
+begin
+  StartPos := WhereY;
+  OptLength := length(Menu[OptionNum].name) + SELECTED_OPT_SHIFT;
+  GotoXY(MENU_SHIFT_RIGHT, Menu[OptionNum].y);
+  for i := 1 to OptLength do
+    write(' ');
+  GotoXY(MENU_SHIFT_RIGHT, StartPos);
+end;
+
+{ write option over }
+procedure RewriteOpt(Menu: MenuType; PrevOpt: integer);
+var
+  LocalShift, RelativePos, StartPos: integer;
+begin
+  LocalShift := SELECTED_OPT_SHIFT div OPTIONS_PADDING;
+  StartPos := WhereY;
+
+  GotoXY(MENU_SHIFT_RIGHT, Menu[PrevOpt].y);
+  for LocalShift  do
+    write(' ');
+  write(Menu[PrevOpt].name);
+  GotoXY(MENU_SHIFT_RIGHT, FindSelectedY(Menu));
+  for
+    write(' ');
+  write(Menu[FindSelectedNum].name);
+end;
+
+{ update option via cursor moving animaiton }
+procedure UpdateText(Menu: MenuType; PrevOpt: integer);
+begin
+  ClearOpt(Menu, FindSelectedNum(Menu));
+  ClearOpt(Menu, PrevOpt);
+  RewriteOpt(Menu, PrevOpt);
+end;
+
+procedure UpdateSelectedBG();
+begin
+
+end;
+
+procedure OneStepDown(Menu: MenuType; StepDelay: integer);
+var
+  NextCursorY, PrevOpt: integer;
+begin
+  PrevOpt := FindSelectedNum(Menu) - 1;
+  NextCursorY := WhereY + 1;
+
+  delay(StepDelay);
+  UpdateText(Menu, PrevOpt);
+  UpdateSelectedBG();
+  GotoXY(MENU_SHIFT_RIGHT, NextCursorY);
+end;
+
+procedure OneStepUp(StepDelay: integer);
+var
+  NextCursorY: integer;
+begin
+  NextCursorY := WhereY - 1;
+  delay(StepDelay);
+  GotoXY(MENU_SHIFT_RIGHT, NextCursorY);
+end;
+
+{ conditions of moving up/down or moving to bottom/top if selected option on other side of list }
+procedure StepsNormalization(Menu: MenuType; StepDelay:integer);
+begin
+  { condition if current option on top and selected one on bottom }
+  if (WhereY = Menu[1].y) and
+     (Menu[MENU_OPT_AMOUNT].y = FindSelectedY(Menu))
+  then
+    GotoXY(MENU_SHIFT_RIGHT, FindSelectedY(Menu))
+  { condition if current option on bottom and selected one on top }
+  else if (WhereY = Menu[MENU_OPT_AMOUNT].y) and
+          (Menu[1].y = FindSelectedY(Menu))
+  then
+    GotoXY(MENU_SHIFT_RIGHT, FindSelectedY(Menu))
+  else if WhereY < FindSelectedY(Menu)
+  then
+    OneStepDown(Menu, StepDelay)
+  else if WhereY > FindSelectedY(Menu)
+  then
+    OneStepUp(StepDelay);
+end;
+
+procedure GotoSelected(Menu: MenuType);
+var
+  MovingSteps, StepDelay, i: integer;
+begin
+  MovingSteps := OPTIONS_PADDING;
+  StepDelay := SELECTION_MOVE_DELAY div MovingSteps;
+
+  for i := 1 to MovingSteps do
+  begin
+    StepsNormalization(Menu, StepDelay);
+  end;
+end;
+
+{ write only first option with selection parameters on it }
+procedure WriteFirstOpt(Menu: MenuType);
+var
+  i: integer;
+begin
+  GotoXY(MENU_SHIFT_RIGHT, Menu[1].y);
+  for i := 1 to SELECTED_OPT_SHIFT do
+    write(' ');
+  write(Menu[1].name);
+end;
+
+{ write initialized menu }
+procedure WriteMenu(Menu: MenuType);
+var
+  i: integer;
+begin
+  WriteFirstOpt(Menu);
+
+  for i := 2 to MENU_OPT_AMOUNT do
+  begin
     GotoXY(MENU_SHIFT_RIGHT, Menu[i].y);
     writeLn(Menu[i].name);
   end;
-  GotoSelected(Menu);
+  GotoXY(MENU_SHIFT_RIGHT, Menu[1].y);
 end;
 
 procedure MoveOptionDown(var Menu: MenuType);
 var
   CurrentSelected: integer;
 begin
-  CurrentSelected := FindSelected(Menu, number);
-  if CurrentSelected < MENU_OPT_AMOUNT then
-  begin
-    Menu[CurrentSelected].selected := false;
-    Menu[CurrentSelected + 1].selected := true;
-  end
-  else
-  begin
-    Menu[CurrentSelected].selected := false;
-    Menu[1].selected := true;
-  end;
-  delay(SELECTION_MOVE_DELAY);
+  CurrentSelected := FindSelectedNum(Menu);
+  Menu[CurrentSelected].selected := false;
+  if CurrentSelected >= MENU_OPT_AMOUNT then
+    CurrentSelected := 0;
+  Menu[CurrentSelected + 1].selected := true;
 end;
 
 procedure MoveOptionTop(var Menu: MenuType);
 var
   CurrentSelected: integer;
 begin
-  CurrentSelected := FindSelected(Menu, number);
-  if CurrentSelected > 1 then
-  begin
-    Menu[CurrentSelected].selected := false;
-    Menu[CurrentSelected - 1].selected := true;
-  end
-  else
-  begin
-    Menu[CurrentSelected].selected := false;
-    Menu[MENU_OPT_AMOUNT].selected := true;
-  end;
-  delay(SELECTION_MOVE_DELAY);
+  CurrentSelected := FindSelectedNum(Menu);
+  Menu[CurrentSelected].selected := false;
+  if CurrentSelected <= 1 then
+    CurrentSelected := MENU_OPT_AMOUNT + 1;
+  Menu[CurrentSelected - 1].selected := true;
 end;
 
 procedure ChooseOption(Menu: MenuType);
@@ -160,7 +267,6 @@ begin
   clrscr;
   InitMenuParams(Menu, NamesOfOptions);
   WriteMenu(Menu);
-
   repeat
      CurrentKey := GetKey();
      UpdateMenu(Menu, CurrentKey);
