@@ -35,7 +35,7 @@ type
 
 var
   NamesOfOptions: MenuNames = ('Start', 'Extras', 'Settings', 'Exit');
-{ BASIC LOGIC ================================================================================ }
+{ BASIC LOGIC ================================================================= }
 { get which button was pressed rn as a number }
 function GetKey(): integer;
 var
@@ -96,36 +96,71 @@ begin
   end;
 end;
 
-{ VISUALIZATION LOGIC ============================================================================= }
+{ VISUALIZATION LOGIC ========================================================= }
 { clear text of option }
 procedure ClearOpt(Menu: MenuType; OptionNum: integer);
 var
   OptLength, StartPos, i: integer;
 begin
   StartPos := WhereY;
-  OptLength := length(Menu[OptionNum].name) + SELECTED_OPT_SHIFT;
+  OptLength := length(Menu[OptionNum].name) + SELECTED_OPT_SHIFT + 1;
   GotoXY(MENU_SHIFT_RIGHT, Menu[OptionNum].y);
   for i := 1 to OptLength do
     write(' ');
   GotoXY(MENU_SHIFT_RIGHT, StartPos);
 end;
 
-{ write option over }
-procedure RewriteOpt(Menu: MenuType; PrevOpt: integer);
+{  }
+procedure RewriteOptUp(Menu: MenuType);
 var
-  LocalShift, RelativePos, StartPos: integer;
+  LocalShift, i: integer;
 begin
   LocalShift := SELECTED_OPT_SHIFT div OPTIONS_PADDING;
-  StartPos := WhereY;
 
   GotoXY(MENU_SHIFT_RIGHT, Menu[PrevOpt].y);
-  for LocalShift  do
+  for i := 1 to LocalShift * (OPTIONS_PADDING - RelativePos) do
     write(' ');
   write(Menu[PrevOpt].name);
+
   GotoXY(MENU_SHIFT_RIGHT, FindSelectedY(Menu));
-  for
+  for i := 1 to LocalShift * RelativePos do
     write(' ');
-  write(Menu[FindSelectedNum].name);
+  write(Menu[FindSelectedNum(Menu)].name);
+end;
+
+{  }
+procedure RewriteOptDown(Menu: MenuType);
+var
+  LocalShift, i: integer;
+begin
+  LocalShift := SELECTED_OPT_SHIFT div OPTIONS_PADDING;
+
+  GotoXY(MENU_SHIFT_RIGHT, Menu[PrevOpt].y);
+  for i := 1 to LocalShift * (OPTIONS_PADDING - RelativePos) do
+    write(' ');
+  write(Menu[PrevOpt].name);
+
+  GotoXY(MENU_SHIFT_RIGHT, FindSelectedY(Menu));
+  for i := 1 to LocalShift * RelativePos do
+    write(' ');
+  write(Menu[FindSelectedNum(Menu)].name);
+end;
+
+{ write option over }
+procedure UpdateOpt(Menu: MenuType; PrevOpt: integer);
+var
+  RelativePos: integer;
+begin
+  if PrevOpt < FindSelectedNum(Menu) then
+  begin
+    RelativePos := OPTIONS_PADDING - (FindSelectedY(Menu) - WhereY) + 1
+    RewriteOptDown(Menu);
+  end
+  else
+  begin
+    RelativePos := OPTIONS_PADDING - (WhereY - FindSelectedY(Menu)) + 1;
+    UpdateOpt(Menu, RelativePos);
+  end;
 end;
 
 { update option via cursor moving animaiton }
@@ -133,7 +168,7 @@ procedure UpdateText(Menu: MenuType; PrevOpt: integer);
 begin
   ClearOpt(Menu, FindSelectedNum(Menu));
   ClearOpt(Menu, PrevOpt);
-  RewriteOpt(Menu, PrevOpt);
+  UpdateOpt(Menu, PrevOpt);
 end;
 
 procedure UpdateSelectedBG();
@@ -154,16 +189,21 @@ begin
   GotoXY(MENU_SHIFT_RIGHT, NextCursorY);
 end;
 
-procedure OneStepUp(StepDelay: integer);
+procedure OneStepUp(Menu: MenuType; StepDelay: integer);
 var
-  NextCursorY: integer;
+  NextCursorY, PrevOpt: integer;
 begin
+  PrevOpt := FindSelectedNum(Menu) - 1;
   NextCursorY := WhereY - 1;
+
   delay(StepDelay);
+  UpdateText(Menu, PrevOpt);
+  UpdateSelectedBG();
   GotoXY(MENU_SHIFT_RIGHT, NextCursorY);
 end;
 
-{ conditions of moving up/down or moving to bottom/top if selected option on other side of list }
+{ conditions of moving up/down or moving to bottom/top if selected option on other
+  side of list }
 procedure StepsNormalization(Menu: MenuType; StepDelay:integer);
 begin
   { condition if current option on top and selected one on bottom }
@@ -181,7 +221,7 @@ begin
     OneStepDown(Menu, StepDelay)
   else if WhereY > FindSelectedY(Menu)
   then
-    OneStepUp(StepDelay);
+    OneStepUp(Menu, StepDelay);
 end;
 
 procedure GotoSelected(Menu: MenuType);
