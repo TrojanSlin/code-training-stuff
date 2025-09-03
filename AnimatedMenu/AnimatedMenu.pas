@@ -3,29 +3,35 @@ uses crt;
 
 const
   { keyboard codes }
-  KEY_TOP = -72;
-  KEY_DOWN = -80;
+  KEY_TOP   = -72;
+  KEY_DOWN  = -80;
   KEY_ENTER = 13;
 
-  { CONFIG ==========================================}
-  { starting menu }
-  MENU_OPT_AMOUNT = 4;      { amount of options (start, exit) etc }
-  MENU_SHIFT_RIGHT = 4;     { shift of menu from right left corner }
-  MENU_SHIFT_BOTTOM = 3;    { shift of menu from top half of screen }
-  OPTIONS_PADDING = 2;      { distance between options }
-  { animations }
-  SELECTION_MOVE_DELAY = 200;   { delay of moving selected opt after key pressed }
-  SELECTION_TEXT_MV_DELAY = 100;{ delay of text moving to right if it was slcted }
-  { selected menu option castomization }
-  SELECTED_OPT_BGC = DarkGray;  { background color }
-  SELECTED_OPT_SHIFT = 2;       { shift to right from cursor }
-
+  { ========================== CONFIG ========================== }
+  { STARTNG MENU }
+  MENU_OPT_AMOUNT   = 4;      { amount of options (start, exit) etc   }
+  MENU_SHIFT_RIGHT  = 4;      { shift of menu from right left corner  }
+  MENU_SHIFT_BOTTOM = 3;      { shift of menu from top half of screen }
+  OPTIONS_PADDING   = 1;      { distance between options              }
+  { ANIMAITONS }
+  { delay of moving selected opt after key pressed }
+  SELECTION_MOVE_DELAY    = 200;
+  { delay of text moving to right if it was slcted }
+  SELECTION_TEXT_MV_DELAY = 100;      { selected menu option castomization }
+  { selected option background color }
+  SELECTED_TEXT_BGC       = Magenta;
+  SELECTED_TEXT_CLR       = LightGray;{ ackground color                    }
+  SELECTED_OPT_SHIFT      = 2;        { shift to right from cursor         }
+  { DEFAULT TEXT PARAMS }
+  TEXT_COLOR       = LightCyan;
+  BACKGROUND_COLOR = Black;
 type
   { properties of a single menu option }
   MenuOption = record
-    name: string;
-    selected: boolean;
-    y: integer;
+    Name     :string;
+    Selected :boolean;
+    PosY     :integer;
+    NameLen  :integer;
   end;
   { array to transfer menu options names to Menu type variable }
   MenuNames = array[1..MENU_OPT_AMOUNT] of string;
@@ -35,8 +41,8 @@ type
 
 var
   NamesOfOptions: MenuNames = ('Start', 'Extras', 'Settings', 'Exit');
-{ BASIC LOGIC ================================================================= }
-{ get which button was pressed rn as a number }
+  { ========================== BASIC LOGIC ========================== }
+  { get which button was pressed rn as a number }
 function GetKey(): integer;
 var
   key: integer;
@@ -47,57 +53,74 @@ begin
   GetKey := key;
 end;
 
-{ get where to place menu on screen }
+  { get where to place menu on screen }
 procedure PositionMenu(var Menu: MenuType);
 var
   StartY, i: integer;
 begin
-  StartY := ScreenHeight div 2 + MENU_SHIFT_BOTTOM;
+  StartY := (ScreenHeight div 2) + MENU_SHIFT_BOTTOM;
   for i := 1 to MENU_OPT_AMOUNT do
-    Menu[i].y := StartY + (i * OPTIONS_PADDING);
+    Menu[i].PosY := StartY + ((OPTIONS_PADDING + 1) * i);
 end;
 
-{ setup parameters of menu }
+  { setup parameters of menu }
 procedure InitMenuParams(var Menu: MenuType; Options: MenuNames);
 var
   i: integer;
 begin
   for i := 1 to MENU_OPT_AMOUNT do
   begin
-    Menu[i].name := Options[i];
-    Menu[i].selected := false;
+    Menu[i].Name := Options[i];
+    Menu[i].NameLen := length(Menu[i].Name);
+    Menu[i].Selected := false;
   end;
-  Menu[1].selected := true;
+  Menu[1].Selected := true;
 
   PositionMenu(Menu);
 end;
 
-{ find y param of current selected option }
+  { find y param of current selected option }
 function FindSelectedY(Menu: MenuType):integer;
 var
   i: integer;
 begin
   for i := 1 to MENU_OPT_AMOUNT do
   begin
-    if Menu[i].selected then
-      FindSelectedY := Menu[i].y;
+    if Menu[i].Selected then
+      FindSelectedY := Menu[i].PosY;
   end;
 end;
 
-{ find number param of current selected option }
+  { find number param of current selected option }
 function FindSelectedNum(Menu: MenuType):integer;
 var
   i: integer;
 begin
   for i := 1 to MENU_OPT_AMOUNT do
   begin
-    if Menu[i].selected then
+    if Menu[i].Selected then
       FindSelectedNum := i;
   end;
 end;
 
-{ VISUALIZATION LOGIC ========================================================= }
-{ clear text of option }
+  { find biggest length param of menu }
+function FindBiggestLen(Menu: MenuType):integer;
+var
+  i, max: integer;
+begin
+  max := 0;
+  for i := 1 to MENU_OPT_AMOUNT do
+  begin
+    if Menu[i].NameLen > max then
+      max := Menu[i].NameLen;
+  end;
+  FindBiggestLen := max;
+end;
+
+  { ========================== VISUAL LOGIC ========================== }
+{$IF 0}
+  { ========================== OLD CODE ============================== }
+  { clear text of option }
 procedure ClearOpt(Menu: MenuType; OptionNum: integer);
 var
   OptLength, StartPos, i: integer;
@@ -110,7 +133,6 @@ begin
   GotoXY(MENU_SHIFT_RIGHT, StartPos);
 end;
 
-{  }
 procedure RewriteOptUp(Menu: MenuType);
 var
   LocalShift, i: integer;
@@ -128,7 +150,6 @@ begin
   write(Menu[FindSelectedNum(Menu)].name);
 end;
 
-{  }
 procedure RewriteOptDown(Menu: MenuType);
 var
   LocalShift, i: integer;
@@ -146,7 +167,7 @@ begin
   write(Menu[FindSelectedNum(Menu)].name);
 end;
 
-{ write option over }
+  { write option over }
 procedure UpdateOpt(Menu: MenuType; PrevOpt: integer);
 var
   RelativePos: integer;
@@ -163,7 +184,7 @@ begin
   end;
 end;
 
-{ update option via cursor moving animaiton }
+  { update option via cursor moving animaiton }
 procedure UpdateText(Menu: MenuType; PrevOpt: integer);
 begin
   ClearOpt(Menu, FindSelectedNum(Menu));
@@ -202,8 +223,8 @@ begin
   GotoXY(MENU_SHIFT_RIGHT, NextCursorY);
 end;
 
-{ conditions of moving up/down or moving to bottom/top if selected option on other
-  side of list }
+  { conditions of moving up/down or moving to bottom/top if selected option on }
+  { other side of list                                                         }
 procedure StepsNormalization(Menu: MenuType; StepDelay:integer);
 begin
   { condition if current option on top and selected one on bottom }
@@ -237,7 +258,7 @@ begin
   end;
 end;
 
-{ write only first option with selection parameters on it }
+  { write only first option with selection parameters on it }
 procedure WriteFirstOpt(Menu: MenuType);
 var
   i: integer;
@@ -248,7 +269,7 @@ begin
   write(Menu[1].name);
 end;
 
-{ write initialized menu }
+  { write initialized menu }
 procedure WriteMenu(Menu: MenuType);
 var
   i: integer;
@@ -299,18 +320,91 @@ begin
   end;
   GotoSelected(Menu);
 end;
+  { ======================= END ========================= }
+
+{$ENDIF}
+
+{procedure UpdateMenu(Menu: MenuType);
+begin
+  case CurrentKey of
+    KEY_TOP:   MoveOptionTop(Menu);
+    KEY_DOWN:  MoveOptionDown(Menu);
+    KEY_ENTER: ChooseOption(Menu);
+  end;
+end;
+}
+procedure TextParamsToSelected;
+begin
+  TextColor(SELECTED_TEXT_CLR);
+  TextBackground(SELECTED_TEXT_BGC);
+end;
+
+procedure TextParamsToDefault;
+begin
+  TextColor(TEXT_COLOR);
+  TextBackground(BACKGROUND_COLOR);
+end;
+
+procedure FillPadding(Menu: MenuType; StartY, LinesAmount: integer);
+var
+  CurY, i, y, SpacesAmount: integer;
+begin
+  SpacesAmount := MENU_SHIFT_RIGHT + FindBiggestLen(Menu);
+  CurY := StartY;
+  for i := 1 to LinesAmount do
+  begin
+    GotoXY(MENU_SHIFT_RIGHT, CurY);
+    CurY := CurY + 1;
+    for y := 1 to SpacesAmount do
+      write(' ');
+  end;
+end;
+
+procedure WriteSelectedOpt(Menu: MenuType);
+var
+  i, StartY: integer;
+begin
+  StartY := FindSelectedY(Menu) - 1;
+
+  write(' ');
+  TextParamsToSelected;
+  FillPadding(Menu, StartY, OPTIONS_PADDING);
+  for i := 1 to SELECTED_OPT_SHIFT do
+    write(' ');
+  write(Menu[FindSelectedNum(Menu)].name);
+  for i := 1 to SELECTED_OPT_SHIFT + 1 do
+    write(' ');
+  TextParamsToDefault;
+end;
+
+procedure WriteMenu(Menu: MenuType);
+var
+  i: integer;
+begin
+  for i := 1 to MENU_OPT_AMOUNT do
+  begin
+    GotoXY(MENU_SHIFT_RIGHT, Menu[i].PosY);
+    if Menu[i].Selected then
+      WriteSelectedOpt(Menu)
+    else
+      writeLn(Menu[i].Name);
+  end;
+  GotoXY(MENU_SHIFT_RIGHT, Menu[1].PosY);
+end;
 
 var
-  CurrentKey: integer;
+  CurrentKey, DefaultTextParams: integer;
   Menu: MenuType;
 begin
   clrscr;
+  DefaultTextParams := TextAttr;
   InitMenuParams(Menu, NamesOfOptions);
   WriteMenu(Menu);
   repeat
      CurrentKey := GetKey();
-     UpdateMenu(Menu, CurrentKey);
+     {UpdateMenu(Menu, CurrentKey);}
   until CurrentKey = ord(' ');
+  TextAttr := DefaultTextParams;
   clrscr;
 end.
 
