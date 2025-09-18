@@ -7,16 +7,16 @@ const
   KEY_DOWN  = -80;
   KEY_ENTER =  13;
 
-  { ========================== CONFIG ========================== }
+  { ========================== PARAMETERS  =========================== }
   { STARTNG MENU }
   MENU_OPT_AMOUNT    = 4;      { amount of options (start, exit) etc   }
   MENU_OFFSET_RIGHT  = 4;      { shift of menu from right left corner  }
   MENU_OFFSET_BOTTOM = 3;      { shift of menu from top half of screen }
   MENU_PADDING       = 1;      { distance between options              }
   { ANIMAITONS }
-  { delay of moving selected opt after key pressed }
+  { delay of moving animation after key pressed }
   SELECTION_MOVE_DELAY    = 200;
-  { delay of text moving to right if it was slcted }
+  { delay of text moving to right if it was selected }
   SELECTION_TEXT_MV_DELAY = 100;      { selected menu option castomization }
   { selected option background color }
   SELECTED_TEXT_BGC       = Magenta;
@@ -25,17 +25,25 @@ const
   { DEFAULT TEXT PARAMS }
   TEXT_COLOR       = Black;
   BACKGROUND_COLOR = LightGray;
-
+  { x position of cursor used for animations and visible for user }
   CURSOR_POSX   = MENU_OFFSET_RIGHT - 1;
+  { amount you need to add  y position 
+
+    ********
+    *Opt1***
+    ********
+    *Opt2*** <- y of this line is BG_BOT_BORDER
+
+   }
   BG_BOT_BORDER = MENU_OPT_AMOUNT * (1 + MENU_PADDING);
 
 type
   { properties of a single menu option }
   MenuOption = record
-    Name     : string;
-    Selected : boolean;
-    PosY     : integer;
-    NameLen  : integer;
+    Name     : string;  { name of option that will be used on screen }
+    Selected : boolean; { true if this option is selected            }
+    PosY     : integer; { y position of option's top line            }
+    NameLen  : integer; { length of option's name                    }
   end;
   { array to transfer menu options names to Menu type variable }
   MenuNames = array[1..MENU_OPT_AMOUNT] of string;
@@ -121,6 +129,23 @@ begin
   FindGreatestLen := max;
 end;
 
+  { change selected option and normalize it depending on key pressed
+    +1 to go to next option and -1 for previous                      }
+procedure GetNextSelected(var Menu: MenuType; ChangePos: integer);
+var
+  PrevSelected, NewSelected: integer;
+begin
+  PrevSelected := FindSelectedNum(Menu);
+  NewSelected := PrevSelected + ChangePos;
+
+  if NewSelected > MENU_OPT_AMOUNT then
+    NewSelected := 1
+  else if NewSelected < 1 then
+    NewSelected := MENU_OPT_AMOUNT;
+  Menu[PrevSelected].Selected := false;
+  Menu[NewSelected].Selected := true;
+end;
+
   { ========================== VISUAL LOGIC ========================== }
 procedure WriteSpaces(Amount: integer);
 var
@@ -177,26 +202,38 @@ begin
   end;
 end;
 
+procedure DrawSelectedLine(Menu: MenuType; PosY: integer);
+var
+  SpacesAmount, TopBorder, BotBorder: integer;
+begin
+  SpacesAmount := MENU_OFFSET_RIGHT + FindGreatestLen(Menu);
+  TopBorder := (ScreenHeight div 2) + MENU_OFFSET_BOTTOM;
+  BotBorder := TopBorder + BG_BOT_BORDER;
+
+  if (PosY > TopBorder) and (PosY <= BotBorder) then
+  begin
+    GotoXY(MENU_OFFSET_RIGHT, PosY);
+    WriteSpaces(SpacesAmount);
+    GotoXY(MENU_OFFSET_RIGHT, PosY);
+    WriteIfOnText(Menu);
+  end
+end;
+
 procedure DrawCursor(Menu: MenuType);
 var
   TopBorder, SpacesAmount, BotBorder, lines, CurY, i, z: integer;
 begin
-  SpacesAmount := MENU_OFFSET_RIGHT + FindGreatestLen(Menu);
-  TopBorder := (ScreenHeight div 2) + MENU_OFFSET_BOTTOM + 1;
-  BotBorder := TopBorder + BG_BOT_BORDER - 1;
   CurY := WhereY;
 
   TextParamsToSelected;
-  for i := MENU_PADDING downto 0 do
+  for i := MENU_PADDING downto 1 do
   begin
-    if (CurY > TopBorder) and (CurY <= BotBorder) then
-    begin
-      GotoXY(MENU_OFFSET_RIGHT, CurY - i);
-      WriteSpaces(SpacesAmount);
-      GotoXY(MENU_OFFSET_RIGHT, CurY - i);
-      WriteIfOnText(Menu);
-    end;
+      DrawSelectedLine(Menu, CurY - i);
   end;
+  { Last string wrote outside of loop for fixing bug
+    if MENU_OFFSET_RIGHT is odd                      }
+  DrawSelectedLine(Menu, CurY);
+
   GotoXY(CURSOR_POSX, CurY);
   TextParamsToClear;
 end;
@@ -221,19 +258,31 @@ end;
 
 procedure MoveOption(var Menu: MenuType; ChangePos: integer);
 var
-  NextSelected, MovingSteps, i: integer;
+  NextSelected, MovingSteps, TopBorder, BotBorder, i: integer;
 begin
   MovingSteps := MENU_PADDING + 1;
-  NextSelected := FindSelectedNum(Menu) + ChangePos;
-  Menu[FindSelectedNum(Menu)].Selected := false;
-  Menu[NextSelected].Selected := true;
+  GetNextSelected(Menu, ChangePos);
+  TopBorder := Menu[1].PosY;
+  BotBorder := Menu[MENU_OPT_AMOUNT].PosY;
 
   for i := 1 to MovingSteps do
   begin
     delay(SELECTION_MOVE_DELAY div MovingSteps);
-    GotoXY(CURSOR_POSX, WhereY + ChangePos);
+    if WhereY < TopBorder then
+      GotoXY(CURSOR_POSX, BotBorder)
+    else if WhereY > BotBorder then
+      GotoXY(CURSOR_POSX, TopBorder)
+    else
+      GotoXY(CURSOR_POSX, WhereY + ChangePos);
     WriteMenu(Menu);
   end;
+end;
+
+procedure ChooseOption(Menu: MenuType);
+begin
+  TextParamsToSelected;
+  write(FindSelectedNum(Menu));
+  TextParamsToClear;
 end;
 
 procedure UpdateMenu(var Menu: MenuType; CurrentKey: integer);
@@ -241,7 +290,7 @@ begin
   case CurrentKey of
     KEY_TOP  : MoveOption(Menu, -1);
     KEY_DOWN : MoveOption(Menu, 1);
-    {KEY_ENTER: ChooseOption(Menu);}
+    KEY_ENTER: ChooseOption(Menu);
   end;
 end;
 
