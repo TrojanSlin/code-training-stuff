@@ -27,14 +27,7 @@ const
   BACKGROUND_COLOR = LightGray;
   { x position of cursor used for animations and visible for user }
   CURSOR_POSX   = MENU_OFFSET_RIGHT - 1;
-  { amount you need to add  y position 
-
-    ********
-    *Opt1***
-    ********
-    *Opt2*** <- y of this line is BG_BOT_BORDER
-
-   }
+  { amount of Y layers of menu }
   BG_BOT_BORDER = MENU_OPT_AMOUNT * (1 + MENU_PADDING);
 
 type
@@ -140,13 +133,13 @@ begin
 
   if NewSelected > MENU_OPT_AMOUNT then
     NewSelected := 1
-  else if NewSelected < 1 then
-    NewSelected := MENU_OPT_AMOUNT;
+  else if NewSelected < 1 then NewSelected := MENU_OPT_AMOUNT;
   Menu[PrevSelected].Selected := false;
   Menu[NewSelected].Selected := true;
 end;
 
   { ========================== VISUAL LOGIC ========================== }
+  { write Amount of spaces. Usualy used to fill colored background of menu }
 procedure WriteSpaces(Amount: integer);
 var
   i: integer;
@@ -154,25 +147,28 @@ begin
   for i := 1 to Amount do
     write(' ');
 end;
-
+  { set text params to selected menu option }
 procedure TextParamsToSelected;
 begin
   TextColor(SELECTED_TEXT_CLR);
   TextBackground(SELECTED_TEXT_BGC);
 end;
 
+  { set text params to not selected menu option }
 procedure TextParamsToDefault;
 begin
   TextColor(TEXT_COLOR);
   TextBackground(BACKGROUND_COLOR);
 end;
 
+  { set text params to default terminal ones }
 procedure TextParamsToClear;
 begin
   TextColor(TEXT_COLOR);
   TextBackground(Black);
 end;
 
+  { draw box of unselected type color for entire menu to fit in }
 procedure FillBG(Menu: MenuType);
 var
   CurY, SpacesAmount, TopBorder, BotBorder: integer;
@@ -188,6 +184,7 @@ begin
   end;
 end;
 
+  { write text for DrawSelectedLine bc it's overwrites previous text }
 procedure WriteIfOnText(Menu: MenuType);
 var
   i: integer;
@@ -202,26 +199,30 @@ begin
   end;
 end;
 
+  { draw a single line of selected option box }
 procedure DrawSelectedLine(Menu: MenuType; PosY: integer);
 var
-  SpacesAmount, TopBorder, BotBorder: integer;
+  SpacesAmount, TopBorder, BotBorder, ResY: integer;
 begin
   SpacesAmount := MENU_OFFSET_RIGHT + FindGreatestLen(Menu);
   TopBorder := (ScreenHeight div 2) + MENU_OFFSET_BOTTOM;
   BotBorder := TopBorder + BG_BOT_BORDER;
 
   if (PosY > TopBorder) and (PosY <= BotBorder) then
-  begin
-    GotoXY(MENU_OFFSET_RIGHT, PosY);
-    WriteSpaces(SpacesAmount);
-    GotoXY(MENU_OFFSET_RIGHT, PosY);
-    WriteIfOnText(Menu);
-  end
+    ResY := PosY
+  else if PosY = TopBorder then
+    ResY := BotBorder;
+
+  GotoXY(MENU_OFFSET_RIGHT, ResY);
+  WriteSpaces(SpacesAmount);
+  GotoXY(MENU_OFFSET_RIGHT, ResY);
+  WriteIfOnText(Menu);
 end;
 
+  { draw a selected option box next to cursor }
 procedure DrawCursor(Menu: MenuType);
 var
-  TopBorder, SpacesAmount, BotBorder, lines, CurY, i, z: integer;
+  CurY, i: integer;
 begin
   CurY := WhereY;
 
@@ -238,6 +239,7 @@ begin
   TextParamsToClear;
 end;
 
+  { rewrite entire menu basically draw a frame of animation }
 procedure WriteMenu(Menu: MenuType);
 var
   i, CurPos: integer;
@@ -256,9 +258,12 @@ begin
   TextParamsToClear;
 end;
 
+  { movement of selected option across menu + normalization if it selected
+    option goes to previous of 1st one and after last one
+    redraws menu                                                           }
 procedure MoveOption(var Menu: MenuType; ChangePos: integer);
 var
-  NextSelected, MovingSteps, TopBorder, BotBorder, i: integer;
+  MovingSteps, TopBorder, BotBorder, i: integer;
 begin
   MovingSteps := MENU_PADDING + 1;
   GetNextSelected(Menu, ChangePos);
@@ -268,16 +273,17 @@ begin
   for i := 1 to MovingSteps do
   begin
     delay(SELECTION_MOVE_DELAY div MovingSteps);
-    if WhereY < TopBorder then
+    if (WhereY < TopBorder) and (ChangePos = -1) then
       GotoXY(CURSOR_POSX, BotBorder)
-    else if WhereY > BotBorder then
-      GotoXY(CURSOR_POSX, TopBorder)
+    else if (WhereY > BotBorder - MENU_PADDING) and (ChangePos = 1) then
+      GotoXY(CURSOR_POSX, TopBorder - MENU_PADDING)
     else
       GotoXY(CURSOR_POSX, WhereY + ChangePos);
     WriteMenu(Menu);
   end;
 end;
 
+  { what to do if selected option is activated }
 procedure ChooseOption(Menu: MenuType);
 begin
   TextParamsToSelected;
@@ -285,12 +291,13 @@ begin
   TextParamsToClear;
 end;
 
+  { what to do if any those buttons are pressed }
 procedure UpdateMenu(var Menu: MenuType; CurrentKey: integer);
 begin
   case CurrentKey of
-    KEY_TOP  : MoveOption(Menu, -1);
-    KEY_DOWN : MoveOption(Menu, 1);
-    KEY_ENTER: ChooseOption(Menu);
+    KEY_TOP   : MoveOption(Menu, -1);
+    KEY_DOWN  : MoveOption(Menu, 1);
+    KEY_ENTER : ChooseOption(Menu);
   end;
 end;
 
