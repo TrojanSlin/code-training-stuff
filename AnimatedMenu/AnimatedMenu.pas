@@ -20,11 +20,11 @@ const
   SELECTION_TEXT_MV_DELAY = 100;      { selected menu option castomization }
   { selected option background color }
   SELECTED_TEXT_BGC       = Magenta;
-  SELECTED_TEXT_CLR       = LightGray;{ ackground color                    }
+  SELECTED_TEXT_CLR       = Black;{ ackground color                    }
   SELECTED_OFFSET         = 2;        { shift to right from cursor         }
   { DEFAULT TEXT PARAMS }
-  TEXT_COLOR       = Black;
-  BACKGROUND_COLOR = LightGray;
+  TEXT_COLOR       = LightGray;
+  BACKGROUND_COLOR = Black;
   { x position of cursor used for animations and visible for user }
   CURSOR_POSX   = MENU_OFFSET_RIGHT - 1;
   { amount of Y layers of menu }
