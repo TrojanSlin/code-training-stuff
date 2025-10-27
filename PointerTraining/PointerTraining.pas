@@ -88,7 +88,7 @@ begin
 end;
 
 procedure ReverseArray2ListReverse(var DataList  :list_ptr;
-                                DataArray :data_array);
+                                       DataArray :data_array);
 var
   tmp :list_ptr;
   i :integer;
@@ -97,10 +97,7 @@ begin
   begin
     new(tmp);
     tmp^.Data := DataArray[i];
-    if DataList = nil then
-      tmp^.NextElement := nil
-    else
-      tmp^.NextElement := DataList;
+    tmp^.NextElement := DataList;
     DataList := tmp;
   end;
 end;
@@ -134,27 +131,25 @@ begin
   writeLn('Product is - ', product);
 end;
 
-procedure MinMax(DataList :list_ptr);
-var
-  min, max :integer;
+procedure MinMax(DataList :list_ptr; var min, max :integer;
+                 var ListExists :boolean);
 begin
-  if DataList <> nil then
+  ListExists := false;
+  if not (DataList <> nil) then
+    exit;
+
+  min := DataList^.Data;
+  max := DataList^.Data;
+  ListExists := true;
+  DataList := DataList^.NextElement;
+  while DataList <> nil do
   begin
-    min := DataList^.Data;
-    max := DataList^.Data;
-    while DataList <> nil do
-    begin
-      if min > DataList^.Data then
-        min := DataList^.Data;
-      if max < DataList^.Data then
-        max := DataList^.Data;
-      DataList := DataList^.NextElement;
-    end;
-    writeLn('Least element is - ', min);
-    writeLn('Greatest element is - ', max);
-  end
-  else
-    writeLn('No elements found list is empty');
+    if min > DataList^.Data then
+      min := DataList^.Data;
+    if max < DataList^.Data then
+      max := DataList^.Data;
+    DataList := DataList^.NextElement;
+  end;
 end;
 
 procedure OddElementsOnly(var DataList :list_ptr);
@@ -184,6 +179,25 @@ begin
   end;
 end;
 
+procedure OddElementsOnlyPtr(var DataList :list_ptr);
+var
+  ListPtr :^list_ptr;
+  tmp :list_ptr;
+begin
+  ListPtr := @DataList;
+  while ListPtr^ <> nil do
+  begin
+    if (ListPtr^^.Data mod 2 = 0) then
+    begin
+      tmp := ListPtr^;
+      ListPtr^ := ListPtr^^.NextElement;
+      dispose(tmp);
+    end
+    else
+      ListPtr := @(ListPtr^^.NextElement);
+  end;
+end;
+
 procedure Reverse(var DataList :list_ptr);
 var
  exchange, tmp :list_ptr;
@@ -197,6 +211,17 @@ begin
     exchange := tmp;
   end;
   DataList := exchange;
+end;
+
+procedure Unite2ListsPtr(var DataList, DataList2 :list_ptr);
+var
+  ListPtr :^list_ptr;
+begin
+  ListPtr := @DataList;
+  while ListPtr^^.NextElement <> nil do
+    ListPtr := @(ListPtr^^.NextElement);
+  ListPtr^^.NextElement := DataList2;
+  DataList2 := nil;
 end;
 
   { ================ WRAPPING PROCEDURES ============= }
@@ -243,9 +268,20 @@ begin
 end;
 
 procedure MinMaxList(var DataList :list_ptr; DataArray :data_array);
+var
+  min, max :integer;
+  ListExists :boolean;
 begin
-  {Array2ListStraight(DataList, DataArray);}
-  MinMax(DataList);
+  ListExists := false;
+  Array2ListStraight(DataList, DataArray);
+  MinMax(DataList, min, max, ListExists);
+  if ListExists then
+  begin
+    writeLn('Least element is - ', min);
+    writeLn('Greatest element is - ', max);
+  end
+  else
+    writeLn('List doesn`t exists');
   DisposeListLoop(DataList);
   writeLn;
 end;
@@ -258,6 +294,14 @@ begin
   WriteDispose(DataList);
 end;
 
+procedure OddElementsOnlyPtrList(var DataList  :list_ptr;
+                                     DataArray :data_array);
+begin
+  Array2ListStraight(DataList, DataArray);
+  OddElementsOnlyPtr(DataList);
+  WriteDispose(DataList);
+end;
+
 procedure ReverseList(var DataList :list_ptr; DataArray :data_array);
 begin
   Array2ListStraight(DataList, DataArray);
@@ -265,9 +309,18 @@ begin
   WriteDispose(DataList);
 end;
 
+procedure Unite2ListsPtrList(var DataList, DataList2 :list_ptr; 
+                                DataArray :data_array);
+begin
+  Array2ListStraight(DataList, DataArray);
+  Array2ListStraight(DataList2, DataArray);
+  Unite2ListsPtr(DataList, DataList2);
+  WriteDispose(DataList);
+end;
+
 var
   DataArray :data_array;
-  DataList  :list_ptr;
+  DataList, DataList2 :list_ptr;
 
 begin
   { ================ PRINTING RESULT ===================}
@@ -300,8 +353,14 @@ begin
   writeLn('Getting odd numbers from list');
   OddElementsOnlyList(DataList, DataArray);
 
+  writeLn('Getting odd numbers from list with pointer on pointer');
+  OddElementsOnlyPtrList(DataList, DataArray);
+
   writeLn('Turn list around');
   ReverseList(DataList, DataArray);
+
+  writeLn('Unite two lists in 1 with pointer on pointer');
+  Unite2ListsPtrList(DataList, DataList2, DataArray);
 
   { Exercises on disposing list }
   writeLn('List disposed with a loop');
