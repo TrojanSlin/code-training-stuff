@@ -16,7 +16,7 @@ end;
 
 function Match(str, pat: string; StrCnt, PatCnt: integer): boolean;
 var
-  i: integer;
+  i, first: integer;
 begin
   Match := false;
   if PatCnt > length(pat) then begin
@@ -31,17 +31,12 @@ begin
       if not BackSlashProcessing(str[StrCnt], pat[PatCnt]) then
         exit
     end;
-    '*': begin
-      for i := 0 to (length(str) - StrCnt + 1) do begin
-        if Match(str, pat, StrCnt + i, PatCnt + 1) then begin
-          Match := true;
-          exit
-        end
-      end;
-      exit
-    end;
-    '+': begin
-      for i := 1 to (length(str) - StrCnt + 1) do begin
+    '*', '+': begin
+      if pat[PatCnt] = '*' then
+        first := 0
+      else
+        first := 1;
+      for i := first to (length(str) - StrCnt + 1) do begin
         if Match(str, pat, StrCnt + i, PatCnt + 1) then begin
           Match := true;
           exit
