@@ -25,7 +25,12 @@ begin
   end;
 
   case pat[PatCnt] of
-    '?':;
+    '?': begin
+      if StrCnt > length(str) then begin
+        Match := false;
+        exit
+      end
+    end;
     '\': begin
       inc(PatCnt);
       if not BackSlashProcessing(str[StrCnt], pat[PatCnt]) then
