@@ -59,7 +59,7 @@ end;
 
 function CallMatch(str, pat: string): boolean;
 begin
-  CallMatch := Match(str, pat, 1, 1);
+  CallMatch := Match(str, pat, 1, 1)
 end;
 
 BEGIN
