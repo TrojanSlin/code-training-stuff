@@ -77,11 +77,14 @@ implementation
                             default: integer);
   var
     CurChar: character_ptr;
+    x, y: integer;
   begin
     CurChar := Character;
+    x := CurChar^.Position.X;
+    y := CurChar^.Position.Y;
     while CurChar <> nil do begin
-      GotoXY(CurChar^.Position.X, CurChar^.Position.Y);
-      TextBackground(cur^.Symbol.BgColor);
+      GotoXY(x, y);
+      TextBackground(FindBgElem(x, y)^.Symbol.BgColor);
       TextColor(cur^.Symbol.TxtColor);
       write(cur^.Symbol.Letter);
       cur := cur^.NextElem
