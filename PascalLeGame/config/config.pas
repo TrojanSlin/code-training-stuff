@@ -15,6 +15,11 @@ const
   KEY_S = 115;
   KEY_D = 100;
 
+  { ---------- LEVEL SIZE ----------- }
+  { typical size of each ingame level }
+  LVL_WIDTH  = 100;
+  LVL_HEIGHT = 40;
+ 
   { ----------- CRT COLORS ORDER ------------ }
   { crt colors order for array for easier use }
   CLR_BLACK     = 1;
@@ -36,3 +41,5 @@ const
   CLRTXT_YELLOW       = 15;
   CLRTXT_WHITE        = 16;
 
+  { -------- ERROR MESSAGES --------- }
+  ERR_LVL_TOO_SMALL  = 'Terminal window is too small. Pls resize it';

@@ -20,20 +20,28 @@ interface
   { draw level from objects list }
   procedure RenderScene(var map: obj_ptr; default: integer);
 
+  { draw level from objects list }
+  procedure UpdateScene(var map: obj_ptr; var character: character_ptr ;
+                            default: integer);
+
+  function ValidScreenSize(): boolean;
+
 implementation
 
   { for now fills list with manually selected colors and symbols }
   { for developmnet purposes                                     }
   procedure FillScreenList(var map: obj_ptr; arr: sym_color_arr);
   var
-    x, y: integer;
+    x, y, LvlStartX, LvlStartY : integer;
     tmp, cur:  obj_ptr;
   begin
     randomize;  { }
     map := nil;
     cur := map;
-    for x := 1 to ScreenWidth do begin
-      for y := 1 to ScreenHeight do begin
+    LvlStartX := (ScreenWidth - LVL_WIDTH) div 2;
+    LvlStartY := (ScreenHeight - LVL_HEIGHT) div 2;
+    for x := LvlStartX to LvlStartX + LVL_WIDTH do begin
+      for y := LVLStartY to LVLStartY + LVL_HEIGHT do begin
         new(tmp);
         tmp^.Position.X := x;
         tmp^.Position.Y := y;
@@ -72,25 +80,51 @@ implementation
     HideCursor;
   end;
 
+  function FindBgElem(var map: obj_ptr; x, y: integer): obj_ptr;
+  var
+    cur: obj_ptr;
+  begin
+    cur := map;
+    while (cur^.Position.X <> x) and (cur^.Position.Y <> y) do
+      cur := cur^.NextElem;
+    FindBgElem := cur;
+  end;
+
   { draw level from objects list }
-  procedure UpdateScene(var Map: obj_ptr; Character: character_ptr ;
+  procedure UpdateScene(var map: obj_ptr; var character: character_ptr ;
                             default: integer);
   var
     CurChar: character_ptr;
-    x, y: integer;
+    CurMap:  obj_ptr;
+    x, y:    integer;
   begin
-    CurChar := Character;
-    x := CurChar^.Position.X;
-    y := CurChar^.Position.Y;
+    CurChar := character;
+    CurMap  := nil;
+
     while CurChar <> nil do begin
+      x := CurChar^.Position.X;
+      y := CurChar^.Position.Y;
+      CurMap := FindBgElem(map, x, y);
       GotoXY(x, y);
-      TextBackground(FindBgElem(x, y)^.Symbol.BgColor);
-      TextColor(cur^.Symbol.TxtColor);
-      write(cur^.Symbol.Letter);
-      cur := cur^.NextElem
+      TextBackground(CurMap^.Symbol.BgColor);
+      TextColor(CurMap^.Symbol.TxtColor);
+      write(CurMap^.Symbol.Letter);
+      CurChar := CurChar^.NextElem
     end;
+
     textattr := default;
     HideCursor;
+  end;
+
+  function ValidScreenSize(): boolean;
+  begin
+    if (ScreenWidth < LVL_WIDTH) or (ScreenHeight < LVL_HEIGHT) then
+      ValidScreenSize := false
+    else
+      ValidScreenSize := true;
+      {GotoXY(((ScreenWidth + length(ERR_LVL_TOO_SMALL)) div 2),
+             ((ScreenWidth + 1) div 2));
+      write(ERR_LVL_TOO_SMALL);}
   end;
 
 end.
