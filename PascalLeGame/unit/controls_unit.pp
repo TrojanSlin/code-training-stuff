@@ -30,6 +30,8 @@ implementation
       KEY_A: RenderCharacter(Character, -1,  0);
       KEY_S: RenderCharacter(Character,  0,  1);
       KEY_D: RenderCharacter(Character,  1,  0);
+    else
+      RenderCharStill(Character);
     end;
   end;
 

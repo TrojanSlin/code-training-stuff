@@ -11,6 +11,7 @@ interface
     character_info = record
       Position: vertex;
       Symbol:   text_params;
+      Visible:  boolean;
       NextElem: character_ptr
     end;
 
@@ -19,6 +20,8 @@ interface
 
   { draw character in current position x+dx, y+dy}
   procedure RenderCharacter(var Character: character_ptr; dx, dy: integer);
+
+  procedure RenderCharStill(var Character: character_ptr);
 
 implementation
 
@@ -74,6 +77,7 @@ implementation
         tmp^.Position.Y := (ScreenHeight div 2) + y;
         tmp^.Symbol.Letter := arr[i];
         tmp^.Symbol.TxtColor := GetCharacterColor(y, x);
+        tmp^.Visible := true;
         tmp^.NextElem := nil;
         if Character = nil then
           Character := tmp
@@ -96,36 +100,39 @@ implementation
 
   { return color of characters symbol for render         }
   { currently it also changes color of legs like walking }
-  function GetCharColor(var Character: character_ptr): integer;
+  procedure GetCharColor(var Character: character_ptr);
   begin
-    if Character^.Symbol.TxtColor = CHR_LEG_FRONT then
-      Character^.Symbol.TxtColor := CHR_LEG_BACK
-    else if Character^.Symbol.TxtColor = CHR_LEG_BACK then
-      Character^.Symbol.TxtColor := CHR_LEG_FRONT;
-
-    GetCharColor := Character^.Symbol.TxtColor;
+    case Character^.Symbol.TxtColor of
+      CHR_LEG_FRONT: Character^.Symbol.TxtColor := CHR_LEG_BACK;
+      CHR_LEG_BACK:  Character^.Symbol.TxtColor := CHR_LEG_FRONT
+    end;
   end;
 
   { return symbol of }
-  function GetCharSymbol(var Character: character_ptr; dx: integer): char;
+  procedure GetCharSymbol(var Character: character_ptr; dx: integer);
   begin
-    GetCharSymbol := Character^.Symbol.Letter;
+    Character^.Visible := true;
     if (Character^.Symbol.TxtColor = CHR_BODY) and 
        (Character^.Symbol.Letter = '/') and
        (dx = -1) then
-      GetCharSymbol := ' '
+      Character^.Visible := false
     else if (Character^.Symbol.TxtColor = CHR_BODY) and 
-       (Character^.Symbol.Letter = '\') and
-       (dx = 1) then
-      GetCharSymbol := ' '
+            (Character^.Symbol.Letter = '\') and
+            (dx = 1) then
+      Character^.Visible := false
   end;
 
   { draw single element of character }
   procedure RenderCharElem(var Character: character_ptr; dx: integer);
   begin
     GotoXY(Character^.Position.X, Character^.Position.Y);
-    TextColor(GetCharColor(Character));
-    write(GetCharSymbol(Character, dx))
+    GetCharColor(Character);
+    TextColor(Character^.Symbol.TxtColor);
+    GetCharSymbol(Character, dx);
+    if Character^.Visible then
+      write(Character^.Symbol.Letter)
+    else
+      write(' ')
   end;
 
   { draw character in current position x+dx, y+dy}
@@ -142,5 +149,23 @@ implementation
     end;
     HideCursor
   end;
+
+  procedure RenderCharStill(var Character: character_ptr);
+  var
+    cur: character_ptr;
+  begin
+    cur := Character;
+    while cur <> nil do begin
+      GotoXY(cur^.Position.X, cur^.Position.Y);
+      TextColor(cur^.Symbol.TxtColor);
+      if cur^.Visible then
+        write(cur^.Symbol.Letter)
+      else
+        write(' ');
+      cur := cur^.NextElem
+    end;
+    HideCursor
+  end;
+
 
 end.
