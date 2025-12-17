@@ -118,7 +118,7 @@ var
 begin
   cur := deque.FirstElem;
   i := 0;
-  while cur <> nil do
+  while cur^ <> nil do
   begin
     i := i + 1;
     writeLn(i, '. - ', cur^.Data);

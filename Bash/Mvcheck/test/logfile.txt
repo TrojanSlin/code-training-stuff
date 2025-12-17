@@ -1,5 +1,0 @@
-realfile.c
-realfile.h
-realfile.txt
-fakefile.txt
-fakefile.h
