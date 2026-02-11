@@ -4,35 +4,34 @@ global  _start
 section .text
 
 ; convert number to string and print it
-; param 1 - number to print
+; EAX - number to print
 write_func:
-        ; PROLOGUE              ; creating frame
-        push    ebp             ; it needs 1 variable for letter
-        mov     ebp, esp
+        xor     edx, edx        ; prep edx for getting remainder
+        mov     ecx, 10         ; div by 10 to get last number
+        div     ecx
+        test    eax, eax        ; check if nothing left in EAX
+        jz      .exit           ; if so print number and exit
+        push    edx             ; if not remember number
+        call    write_func      ; call itslef to get nex number
+        pop     edx             ; when recursion closes get number back
+.exit:  add     edx, 48         ; add 0 ascii code
+        PUTCHAR dl              ; print number
+        ret
 
-        ; MAIN PART
-        mov     eax, [ebp+8]     ; get whats left from number
-        test    eax, eax         ; if 0 exit
-        jz      .exit
-        mov     ebx, 10          ; write 10 to divide number by it
-        xor     edx, edx         ; clear EDX for to write result of division
-        div     ebx              ; get single digit from it by dividing
-        add     dl, 48           ; add '0' ascii code to number
-        push    edx              ; save
-        push    eax
+
+_start:	mov     eax, 00
         call    write_func
+        PUTCHAR 10
 
-        ; WRITING LETTER
-        pop     ebx
-        PUTCHAR bl
-        ; EXIT
-.exit:  mov     esp, ebp
-        pop     ebp
-        ret     4
+        mov     eax, 100
+        call    write_func
+        PUTCHAR 10
 
+        mov     eax, 1001
+        call    write_func
+        PUTCHAR 10
 
-_start:	mov     eax, 100
-        push    eax
+        mov     eax, 6543
         call    write_func
         PUTCHAR 10
 	FINISH
