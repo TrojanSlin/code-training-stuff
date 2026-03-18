@@ -9,7 +9,7 @@ enum {bufsize = 128};
 int count_word_lenght(char *str)
 {
   int i;
-  for(i = 1; *(str+i) != ' ' && *(str+i) != '\0'; i++)
+  for(i = 1; str[i] != ' ' && str[i] != '\0'; i++)
     {}
   return i;
 }
@@ -140,15 +140,15 @@ int min_words(char *str)
 
 int biggest_space(char *str)
 {
-  char *prev;
   int len = 0, res = 0;
-  while(get_word(&str, &len)) {
-    prev = str + len - sizeof(char);
-    str += len;
-    if(get_word(&str, &len)) {
-      if((str - prev) > res)
-        res = str - prev;
-    }
+  for(;*str; str++) {
+    if(*str == ' ')
+      len++;
+    else
+      len = 0;
+ 
+    if(len > res)
+      res = len;
   }
   return res;
 }
